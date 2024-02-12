@@ -1,0 +1,25 @@
+openmim
+mmcv-lite>=2.0.0rc4,<2.1.0
+mmdet>=3.0.0
+mmengine>=0.7.1
+mmyolo
+gradio
+transformers
+addict
+yapf
+numpy
+opencv-python
+supervision==0.6.0
+ftfy
+regex
+pot
+sentencepiece
+tokenizers
+onnx
+onnxruntime
+onnxruntime-gpu
+onnx-simplifier
+
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.0.1
+torchvision==0.15.2

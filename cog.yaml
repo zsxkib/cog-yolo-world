@@ -1,0 +1,55 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  # set to true if your model requires a GPU
+  gpu: true
+  cuda: "12.1"
+
+  # a list of ubuntu apt packages to install
+  system_packages:
+    - "libgl1-mesa-glx"
+    - "libglib2.0-0"
+    - "ffmpeg"
+
+  # python version in the form '3.11' or '3.11.4'
+  python_version: "3.10.12"
+
+  # a list of packages in the format <package-name>==<version>
+  python_packages:
+    - "openmim"
+    - "mmcv-lite>=2.0.0rc4,<2.1.0"
+    - "mmdet>=3.0.0"
+    - "mmengine>=0.7.1"
+    - "mmyolo"
+    - "gradio==3.50.2"
+    - "transformers"
+    - "addict"
+    - "yapf"
+    - "numpy"
+    - "opencv-python"
+    - "supervision==0.18.0"
+    - "ftfy"
+    - "regex"
+    - "pot"
+    - "sentencepiece"
+    - "tokenizers"
+    - "onnx"
+    - "onnxruntime"
+    - "onnxruntime-gpu"
+    - "onnx-simplifier"
+    - "hf-transfer"
+    - "torch==2.0.1"
+    - "torchvision==0.15.2"
+
+  # commands run after the environment is setup
+  run:
+    - pip uninstall -y mmcv-full
+    - mim install 'mmengine>=0.6.0'
+    - mim install 'mmcv-lite==2.0.1'
+    - mim install 'mmdet>=3.0.0,<4.0.0'
+    - mim install 'mmyolo'
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.6.1/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"
