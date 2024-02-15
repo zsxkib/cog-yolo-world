@@ -1,36 +1,35 @@
 # Prediction interface for Cog ⚙️
 # https://github.com/replicate/cog/blob/main/docs/python.md
 
-from typing import List, Tuple
-import cv2  # Make sure to import cv2 at the top of your file
-from tqdm import tqdm
+import os
+import os.path as osp
+
+import cv2
+import time
 import tempfile
 import subprocess
+from tqdm import tqdm
+from typing import List, Tuple
 from tempfile import NamedTemporaryFile
-import time
 from cog import BasePredictor, Input, Path
-import os
 
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 os.system("pip install -e .")
+
 import argparse
-import os.path as osp
+
 from mmengine.config import Config, DictAction
 from mmengine.runner import Runner
 from mmengine.dataset import Compose
 from mmyolo.registry import RUNNERS
-import tools.demo as demo
-from PIL import Image
+
 import torch
+import shutil
+
 import numpy as np
+import supervision as sv
 from torchvision.ops import nms
 from mmengine.runner.amp import autocast
-from mmdet.visualization import DetLocalVisualizer
-import cv2
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue
-import supervision as sv
-import shutil
 
 
 WEIGHTS_DIR_PATH = "./weights"
@@ -44,7 +43,7 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(text_color=sv.Color.BLACK)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="YOLO-World Demo")
+    parser = argparse.ArgumentParser(description="YOLO-World Replicate Cog")
     parser.add_argument(
         "--config",
         default="configs/pretrain/yolo_world_l_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py",
@@ -68,7 +67,13 @@ def parse_args():
         "Note that the quotation marks are necessary and that no white space "
         "is allowed.",
     )
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+
+    # Manually add the unknown arguments to the args namespace
+    # This example simply adds them as a list under the attribute 'unknown_args'
+    # You can adjust the attribute name as needed
+    setattr(args, 'unknown_args', unknown)
+
     return args
 
 
@@ -139,7 +144,7 @@ def find_safe_batch_size(
 
 
 def run_image(
-    runner,
+    runner: Runner,
     image: np.ndarray,
     text: str,
     max_num_boxes: int = 100,
@@ -196,18 +201,20 @@ def run_image(
         return annotated_image
 
 
+
 def extract_audio(video_path: str, output_audio_path: str) -> bool:
     print(f"[~] Extracting audio from {video_path} to {output_audio_path}")
-    command = f"ffprobe -v error -select_streams a -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 {video_path}"
-    has_audio = subprocess.run(
-        command, shell=True, text=True, capture_output=True
-    ).stdout
-    if not has_audio:
-        print("[!] No audio stream found in the video.")
-        return False
-    command = f"ffmpeg -i {video_path} -q:a 0 -map a {output_audio_path}"
+    # Updated ffmpeg command to extract and convert the audio
+    command = f"ffmpeg -i {video_path} -vn -ar 44100 -ac 2 -ab 192k -f mp3 {output_audio_path}"
     os.system(command)
-    return True
+    
+    # Check if the output audio file exists and has content
+    if os.path.exists(output_audio_path) and os.path.getsize(output_audio_path) > 0:
+        return True
+    else:
+        print("[!] No audio stream found in the video or extraction failed.")
+        return False
+
 
 
 def get_fps(video_path: str) -> float:
@@ -282,9 +289,9 @@ def run_video(
     # Adjust ffmpeg command based on whether audio was extracted
     frames_pattern = os.path.join(temp_dir, "frame_%05d.png")
     if has_audio:
-        ffmpeg_cmd = f"ffmpeg -r {fps} -i {frames_pattern} -i {audio_path} -c:v libx264 -pix_fmt yuv420p -c:a aac -strict experimental {output_video_path}"
+        ffmpeg_cmd = f"ffmpeg -y -r {fps} -i {frames_pattern} -i {audio_path} -c:v libx264 -pix_fmt yuv420p -c:a aac -strict experimental {output_video_path}"
     else:
-        ffmpeg_cmd = f"ffmpeg -r {fps} -i {frames_pattern} -c:v libx264 -pix_fmt yuv420p {output_video_path}"
+        ffmpeg_cmd = f"ffmpeg -y -r {fps} -i {frames_pattern} -c:v libx264 -pix_fmt yuv420p {output_video_path}"
 
     print(f"[!] Running ffmpeg command: {ffmpeg_cmd}")
     os.system(ffmpeg_cmd)
@@ -294,8 +301,14 @@ def run_video(
 
 
 def process_batch(
-    frames_batch, frame_paths, runner, text, max_num_boxes, score_thr, nms_thr
-):
+    frames_batch: List[np.ndarray], 
+    frame_paths: List[str], 
+    runner: Runner, 
+    text: str, 
+    max_num_boxes: int, 
+    score_thr: float, 
+    nms_thr: float
+) -> None:
     # This function processes a batch of frames
     for i, frame in enumerate(frames_batch):
         annotated_frame = run_image(

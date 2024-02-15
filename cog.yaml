@@ -45,10 +45,13 @@ build:
   # commands run after the environment is setup
   run:
     - pip uninstall -y mmcv-full
+    # ==== This section will fail if using using `Cog v0.9.x` to run `cog build` ====
+    # So downgrade to Cog v0.8.6 (i.e. run `sudo curl -o /usr/local/bin/cog -L "https://github.com/replicate/cog/releases/download/v0.8.6/cog_$(uname -s)_$(uname -m)" && sudo chmod +x /usr/local/bin/cog`) then try `cog build`
     - mim install 'mmengine>=0.6.0'
     - mim install 'mmcv-lite==2.0.1'
     - mim install 'mmdet>=3.0.0,<4.0.0'
     - mim install 'mmyolo'
+    # ========
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.6.1/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
 
 # predict.py defines how predictions are run on your model

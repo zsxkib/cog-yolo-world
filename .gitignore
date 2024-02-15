@@ -1,3 +1,9 @@
+# Replicate
+*.mp4
+.cog/
+weights/
+work_dirs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
