@@ -30,8 +30,8 @@ sdk_version: 4.16.0
 
 [![arxiv paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/abs/)
 [![video](https://img.shields.io/badge/🤗HugginngFace-Spaces-orange)](https://huggingface.co/)
-[![license](https://img.shields.io/badge/License-GPLv3.0-blue)](LICENSE)
 [![Replicate](https://replicate.com/zsxkib/yolo-world/badge)](https://replicate.com/zsxkib/yolo-world)
+[![license](https://img.shields.io/badge/License-GPLv3.0-blue)](LICENSE)
 
 </div>
 </div>
