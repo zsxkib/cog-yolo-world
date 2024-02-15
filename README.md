@@ -31,6 +31,7 @@ sdk_version: 4.16.0
 [![arxiv paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/abs/)
 [![video](https://img.shields.io/badge/🤗HugginngFace-Spaces-orange)](https://huggingface.co/)
 [![license](https://img.shields.io/badge/License-GPLv3.0-blue)](LICENSE)
+[![Replicate](https://replicate.com/zsxkib/yolo-world/badge)](https://replicate.com/zsxkib/yolo-world)
 
 </div>
 </div>
@@ -70,11 +71,11 @@ We've pre-trained YOLO-World-S/M/L from scratch and evaluate on the `LVIS val-1.
 
 ### Zero-shot Inference on LVIS dataset
 
-| model | Pre-train Data | AP | AP<sub>r</sub> | AP<sub>c</sub> | AP<sub>f</sub> | FPS(V100) | weights | log |
-| :---- | :------------- | :-:| :------------: |:-------------: | :-------: | :-----: | :---: | :---: |
-| [YOLO-World-S](./configs/pretrain/yolo_world_s_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG | 17.6 | 11.9 | 14.5 | 23.2  | - | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoREsieRl) | [log]() |
-| [YOLO-World-M](./configs/pretrain/yolo_world_m_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG | 23.5 | 17.2 | 20.4 | 29.6  | - | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoj0byBC0) | [log]() |
-| [YOLO-World-L](./configs/pretrain/yolo_world_l_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG | 25.7 | 18.7 | 22.6 | 32.2 | - | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoK06oxO2) | [log]() |
+| model                                                                                                         | Pre-train Data |  AP   | AP<sub>r</sub> | AP<sub>c</sub> | AP<sub>f</sub> | FPS(V100) |                           weights                           |   log   |
+| :------------------------------------------------------------------------------------------------------------ | :------------- | :---: | :------------: | :------------: | :------------: | :-------: | :---------------------------------------------------------: | :-----: |
+| [YOLO-World-S](./configs/pretrain/yolo_world_s_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG     | 17.6  |      11.9      |      14.5      |      23.2      |     -     | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoREsieRl) | [log]() |
+| [YOLO-World-M](./configs/pretrain/yolo_world_m_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG     | 23.5  |      17.2      |      20.4      |      29.6      |     -     | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoj0byBC0) | [log]() |
+| [YOLO-World-L](./configs/pretrain/yolo_world_l_t2i_bn_2e-4_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py) | O365+GoldG     | 25.7  |      18.7      |      22.6      |      32.2      |     -     | [wecom](https://drive.weixin.qq.com/s?k=AJEAIQdfAAoK06oxO2) | [log]() |
 
 **NOTE:**
 1. The evaluation results are tested on LVIS minival in a zero-shot manner.
