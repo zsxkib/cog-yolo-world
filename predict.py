@@ -8,10 +8,11 @@ import cv2
 import time
 import tempfile
 import subprocess
+import json
 from tqdm import tqdm
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from tempfile import NamedTemporaryFile
-from cog import BasePredictor, Input, Path
+from cog import BasePredictor, Input, Path, BaseModel
 
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 os.system("pip install -e .")
@@ -40,6 +41,12 @@ WEIGHTS_FILE_PATH = (
 
 BOUNDING_BOX_ANNOTATOR = sv.BoundingBoxAnnotator()
 LABEL_ANNOTATOR = sv.LabelAnnotator(text_color=sv.Color.BLACK)
+JSON_RESP = []
+
+
+class Output(BaseModel):
+    media_path: Optional[Path]
+    json_str: Optional[str]
 
 
 def parse_args():
@@ -72,7 +79,7 @@ def parse_args():
     # Manually add the unknown arguments to the args namespace
     # This example simply adds them as a list under the attribute 'unknown_args'
     # You can adjust the attribute name as needed
-    setattr(args, 'unknown_args', unknown)
+    setattr(args, "unknown_args", unknown)
 
     return args
 
@@ -151,6 +158,7 @@ def run_image(
     score_thr: float = 0.05,
     nms_thr: float = 0.5,
 ):
+    global JSON_RESP
     with NamedTemporaryFile(suffix=".jpeg") as f:
         cv2.imwrite(f.name, image)
         texts = [[t.strip()] for t in text.split(",")] + [[" "]]
@@ -188,6 +196,7 @@ def run_image(
                 )
             },
         )
+        JSON_RESP.append(get_output_json_from_detections(detections))
 
         labels = [
             f"{class_name} {confidence:0.2f}"
@@ -201,20 +210,40 @@ def run_image(
         return annotated_image
 
 
+def get_output_json_from_detections(detections):
+    output_dict = {}
+    for i, (bbox, score, class_id, class_name) in enumerate(
+        zip(
+            detections.xyxy,
+            detections.confidence,
+            detections.class_id,
+            detections.data["class_name"],
+        )
+    ):
+        output_dict[f"Det-{i}"] = {
+            "x0": float(bbox[0]),
+            "y0": float(bbox[1]),
+            "x1": float(bbox[2]),
+            "y1": float(bbox[3]),
+            "score": float(score),
+            "cls": class_name,
+        }
+
+    return json.dumps(output_dict)
+
 
 def extract_audio(video_path: str, output_audio_path: str) -> bool:
     print(f"[~] Extracting audio from {video_path} to {output_audio_path}")
     # Updated ffmpeg command to extract and convert the audio
     command = f"ffmpeg -i {video_path} -vn -ar 44100 -ac 2 -ab 192k -f mp3 {output_audio_path}"
     os.system(command)
-    
+
     # Check if the output audio file exists and has content
     if os.path.exists(output_audio_path) and os.path.getsize(output_audio_path) > 0:
         return True
     else:
         print("[!] No audio stream found in the video or extraction failed.")
         return False
-
 
 
 def get_fps(video_path: str) -> float:
@@ -301,13 +330,13 @@ def run_video(
 
 
 def process_batch(
-    frames_batch: List[np.ndarray], 
-    frame_paths: List[str], 
-    runner: Runner, 
-    text: str, 
-    max_num_boxes: int, 
-    score_thr: float, 
-    nms_thr: float
+    frames_batch: List[np.ndarray],
+    frame_paths: List[str],
+    runner: Runner,
+    text: str,
+    max_num_boxes: int,
+    score_thr: float,
+    nms_thr: float,
 ) -> None:
     # This function processes a batch of frames
     for i, frame in enumerate(frames_batch):
@@ -319,6 +348,7 @@ def process_batch(
 
 class Predictor(BasePredictor):
     def setup(self) -> None:
+
         if not os.path.exists(WEIGHTS_DIR_PATH):
             os.makedirs(WEIGHTS_DIR_PATH)
         if not os.path.exists(WEIGHTS_FILE_PATH):
@@ -381,12 +411,17 @@ class Predictor(BasePredictor):
             ge=0,
             le=1,
         ),
-    ) -> Path:
+        return_json: bool = Input(
+            description="Return results in json format", default=False
+        ),
+    ) -> Output:
+        global JSON_RESP
+        JSON_RESP = []
 
         image_path = str(input_media)
 
         if image_path.endswith(".mp4"):
-            output_video_path = "/tmp/output_video.mp4"
+            output_video_path = "output_video.mp4"
             # Calculating a safe batch size for video processing, adjusted to 80% of the maximum possible value and rounded to the nearest lower power of 2 for efficiency
             safe_batch_size = 2 ** int(
                 np.floor(
@@ -410,7 +445,13 @@ class Predictor(BasePredictor):
                 output_video_path=output_video_path,
                 batch_size=safe_batch_size,
             )
-            return Path(output_video_path)
+            if return_json:
+                frame_json = {
+                    f"Frame-{i}": json.loads(JSON_RESP[i])
+                    for i in range(len(JSON_RESP))
+                }
+                return Output(json_str=json.dumps(frame_json))
+            return Output(media_path=Path(output_video_path))
         else:
             image = run_image(
                 runner=self.runner,
@@ -420,6 +461,9 @@ class Predictor(BasePredictor):
                 score_thr=score_thr,
                 nms_thr=nms_thr,
             )
-            output_image_path = f"/tmp/out.png"
+            output_image_path = "output.png"
             cv2.imwrite(output_image_path, image)
-            return Path(output_image_path)
+
+            if return_json:
+                return Output(json_str=JSON_RESP[0])
+            return Output(media_path=Path(output_image_path))
